@@ -162,7 +162,7 @@ def main():
     st.subheader("Welcome to the AI-powered document chatbot!")
 
     with st.sidebar:
-        user_type = st.radio("Are you a new user or an old user?", ("New User", "Old User"))
+        user_type = st.radio("Are you a new user or an old user?", ("New User", "Old User","Continue with previous docs"))
 
         if user_type == "New User":
             new_id_value = st.text_input("Enter your ID", value="")
@@ -196,16 +196,13 @@ def main():
                 # Fetch existing data associated with old_id_value
                 response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
                 existing_data = response.data[0]
+                st.write({existing_data})
                 existing_content = existing_data['content'] if 'content' in existing_data else []
+                st.write({existing_data})
                 existing_embeddings = np.array(existing_data['embeddings']) if 'embeddings' in existing_data else np.array([])
                 st.write("fetching complete")
 
-                    # additional_action = st.radio("Do you want to add new documents or continue with existing ones?", ("Add New Documents"))
-                    #                              #"Continue with Existing Documents"))
-                    
-                    # if additional_action == "Add New Documents":
-                        # old_user_pdf_docs = st.file_uploader("Upload your PDFs and click on 'Process'", accept_multiple_files=True, key=key_old_user)
-                    # if st.button("Process Old User Data"):
+                  
                 if old_user_pdf_docs:
                     with st.spinner("Processing"):
                         try:
@@ -213,9 +210,9 @@ def main():
                             new_raw_text = get_pdf_text(old_user_pdf_docs)
                             new_text_chunks = get_text_chunks(new_raw_text)
                             new_embeddings = get_embeddings(new_text_chunks)
-                            st.write("processed new data")
                             combined_text_chunks = existing_content[0] + new_text_chunks[0]
                             st.write("done")
+                            st.write({combined_text_chunks})
                             combined_embeddings = np.concatenate([existing_embeddings, new_embeddings], axis=0)
                             combined_embedding_list = combined_embeddings.tolist()
                             data = {'id': old_id_value, 'content': combined_text_chunks, 'embeddings': combined_embedding_list}
@@ -226,14 +223,41 @@ def main():
                     st.success("Processing complete!")
                     st.write("You can now ask a question to the chatbot.")
                     
-                    # elif additional_action == "Continue with Existing Documents":
-                    #     with st.spinner("Processing"):
-                    #         try:
-                    #             st.session_state.pdf_processed = True
-                    #         except Exception as e:
-                    #             st.error(f"An error occurred with processing old ID and old documents: {e}")
-                    #     st.success("Processing complete!")
-                    #     st.write("You can now ask a question to the chatbot.")
+                    
+        elif user_type == "Continue with previous docs":
+            old_id_value = st.text_input("Enter your old ID", value="")
+
+            st.session_state.id = old_id_value
+
+            if st.button("Process the old documents"):
+                with st.spinner("Processing"):
+                    try:
+                        # Fetch existing data associated with old_id_value
+                        st.write("Started fetching existing data...")
+                        response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
+                        st.write("Response fetched")
+
+                        if response.data:
+                            existing_data = response.data[0]
+                            # st.write(f"Existing data: {existing_data}")
+
+                            existing_content = existing_data.get('content', [])
+                            existing_embeddings = np.array(existing_data.get('embeddings', []))
+
+                            st.write("Fetching complete")
+                            st.session_state.pdf_processed = True
+                        else:
+                            st.error(f"No data found for the provided ID: {old_id_value}")
+
+                    except Exception as e:
+                        st.error(f"An error occurred with processing old ID and new documents: {e}")
+
+                if st.session_state.pdf_processed:
+                    st.success("Processing complete!")
+                    st.write("You can now ask a question to the chatbot.")
+
+
+
 
     if st.session_state.pdf_processed:
         user_question = st.text_input("Ask a question about your documents:")
