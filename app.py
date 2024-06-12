@@ -1,3 +1,4 @@
+
 import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -14,12 +15,12 @@ import re
 import httpx
 
 # HuggingFace token
-api_token = "hf_EgTUeWOEPrWyruLDIKEGUulKPEoLwxcEw"
+api_token = "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"
 
-DATABASE_URL = 'postgresql+psycopg2://postgres.oifpqngnyxthcptbfgqr:F8qpcxfBeXHiypGM@aws-0-ap-south-1.pooler.supabase.com:6543/postgres'
+DATABASE_URL = "postgresql+psycopg2://postgres.oifpqngnyxthcptbfgqr:F8qpcxfBeXHiypGM@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
 engine = create_engine(DATABASE_URL)
 SUPABASE_URL = "https://oifpqngnyxthcptbfgqr.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZnBxbmdueXh0aGNwdGJmZ3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc2NjE5MTAsImV4cCI6MjMzMjM3OTEwfQ.-JYoel_gkWOswP6UKn3AcJ1Lbu4mld8UbDrYadXbc0o"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZnBxbmdueXh0aGNwdGJmZ3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc2NjE5MTAsImV4cCI6MjAzMzIzNzkxMH0.-JYoel_gkWOswP6UKn3AcJ1Lbu4mld8UbDrYadXbc0o"
 
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -145,12 +146,12 @@ def fetch_user_data(id_value):
 def main():
     load_dotenv()
     st.set_page_config(page_title="Chat with multiple PDFs", page_icon=":books:")
-    old_id_value = None
-    new_id_value = None
+    # old_id_value = None
+    # new_id_value = None
     key_old_user = "file_uploader_old_user"
     key_new_user = "file_uploader_new_user"
-    old_user_pdf_docs = None
-    new_user_pdf_docs = None
+    # old_user_pdf_docs = None
+    # new_user_pdf_docs = None
 
     if "id" not in st.session_state:
         st.session_state.id = None
@@ -185,47 +186,54 @@ def main():
         
         elif user_type == "Old User":
             old_id_value = st.text_input("Enter your old ID", value="")
-            if st.button("Enter Old User ID"):
-                if fetch_user_data(old_id_value):
-                    st.session_state.id = old_id_value
-                    st.write("Welcome back!")
+            old_user_pdf_docs = st.file_uploader("Upload your PDFs and click on 'Process'", accept_multiple_files=True, key=key_old_user)
+            if st.button("process data"):
+                
+                st.session_state.id = old_id_value
                     
-                    # Fetch existing data associated with old_id_value
-                    response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
-                    existing_data = response.data[0]
-                    existing_content = existing_data['content'] if 'content' in existing_data else []
-                    existing_embeddings = np.array(existing_data['embeddings']) if 'embeddings' in existing_data else np.array([])
+                    
+                    
+                # Fetch existing data associated with old_id_value
+                response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
+                existing_data = response.data[0]
+                existing_content = existing_data['content'] if 'content' in existing_data else []
+                existing_embeddings = np.array(existing_data['embeddings']) if 'embeddings' in existing_data else np.array([])
+                st.write("fetching complete")
 
-                    additional_action = st.radio("Do you want to add new documents or continue with existing ones?", ("Add New Documents", "Continue with Existing Documents"))
+                    # additional_action = st.radio("Do you want to add new documents or continue with existing ones?", ("Add New Documents"))
+                    #                              #"Continue with Existing Documents"))
                     
-                    if additional_action == "Add New Documents":
-                        old_user_pdf_docs = st.file_uploader("Upload your PDFs and click on 'Process'", accept_multiple_files=True, key=key_old_user)
-                        if st.button("Process Old User Data"):
-                            if old_user_pdf_docs:
-                                with st.spinner("Processing"):
-                                    try:
-                                        new_raw_text = get_pdf_text(old_user_pdf_docs)
-                                        new_text_chunks = get_text_chunks(new_raw_text)
-                                        new_embeddings = get_embeddings(new_text_chunks)
-                                        combined_text_chunks = existing_content + new_text_chunks
-                                        combined_embeddings = np.concatenate([existing_embeddings, new_embeddings], axis=0)
-                                        combined_embedding_list = combined_embeddings.tolist()
-                                        data = {'id': old_id_value, 'content': combined_text_chunks, 'embeddings': combined_embedding_list}
-                                        supabase_client.table('pdfs').upsert(data).execute()
-                                        st.session_state.pdf_processed = True
-                                    except Exception as e:
-                                        st.error(f"An error occurred with processing old ID and new documents: {e}")
-                                st.success("Processing complete!")
-                                st.write("You can now ask a question to the chatbot.")
+                    # if additional_action == "Add New Documents":
+                        # old_user_pdf_docs = st.file_uploader("Upload your PDFs and click on 'Process'", accept_multiple_files=True, key=key_old_user)
+                    # if st.button("Process Old User Data"):
+                if old_user_pdf_docs:
+                    with st.spinner("Processing"):
+                        try:
+                            st.write("started processing")
+                            new_raw_text = get_pdf_text(old_user_pdf_docs)
+                            new_text_chunks = get_text_chunks(new_raw_text)
+                            new_embeddings = get_embeddings(new_text_chunks)
+                            st.write("processed new data")
+                            combined_text_chunks = existing_content[0] + new_text_chunks[0]
+                            st.write("done")
+                            combined_embeddings = np.concatenate([existing_embeddings, new_embeddings], axis=0)
+                            combined_embedding_list = combined_embeddings.tolist()
+                            data = {'id': old_id_value, 'content': combined_text_chunks, 'embeddings': combined_embedding_list}
+                            supabase_client.table('pdfs').upsert(data).execute()
+                            st.session_state.pdf_processed = True
+                        except Exception as e:
+                            st.error(f"An error occurred with processing old ID and new documents: {e}")
+                    st.success("Processing complete!")
+                    st.write("You can now ask a question to the chatbot.")
                     
-                    elif additional_action == "Continue with Existing Documents":
-                        with st.spinner("Processing"):
-                            try:
-                                st.session_state.pdf_processed = True
-                            except Exception as e:
-                                st.error(f"An error occurred with processing old ID and old documents: {e}")
-                        st.success("Processing complete!")
-                        st.write("You can now ask a question to the chatbot.")
+                    # elif additional_action == "Continue with Existing Documents":
+                    #     with st.spinner("Processing"):
+                    #         try:
+                    #             st.session_state.pdf_processed = True
+                    #         except Exception as e:
+                    #             st.error(f"An error occurred with processing old ID and old documents: {e}")
+                    #     st.success("Processing complete!")
+                    #     st.write("You can now ask a question to the chatbot.")
 
     if st.session_state.pdf_processed:
         user_question = st.text_input("Ask a question about your documents:")
