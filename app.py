@@ -28,6 +28,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 api_token = os.getenv('API_TOKEN')
+api_key = os.getenv('API_KEY')
 
 engine = create_engine(DATABASE_URL)
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -51,7 +52,7 @@ def get_pdf_text(pdf_docs):
     return text
 
 def get_text_chunks(text):
-    max_chunk_size = 1000
+    max_chunk_size = 5000
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=max_chunk_size,
         chunk_overlap=100,
@@ -120,7 +121,7 @@ def handle_userinput(user_question):
     # Join the best chunks into a single string for the input
     # context = " ".join(best_chunk)
     input_text = f"You are an AI language model designed for a Retrieval-Augmented Generation (RAG) application. You will receive a query along with relevant chunks of text. Based on these chunks, generate a coherent and accurate response to the query. Query: {user_question} Relevant Chunks: {best_chunk}"
-    genai.configure(api_key="AIzaSyBjTX8MSFMU3XvkiKhZAJ2BHgnt3S3_MWI")
+    genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.0-pro')
 
     # input_text = f"You are an AI language model and will answer the query based on the best chunk provided. Query: {user_question} Best chunk: {best_chunk}"
@@ -248,12 +249,12 @@ def main():
                 st.session_state.existing_content = existing_content
                 existing_embeddings = np.array(existing_data['embeddings']) if 'embeddings' in existing_data else np.array([])
 
-                st.write("Fetching complete")
+                # st.write("Fetching complete")
 
                 if st.session_state.user_pdf_docs:
                     with st.spinner("Processing"):
                         try:
-                            st.write("Started processing")
+                            # st.write("Started processing")
                             new_raw_text = get_pdf_text(st.session_state.user_pdf_docs)
                             new_text_chunks = get_text_chunks(new_raw_text)
                             # new_text_chunks should be a list of strings (or text chunks)
@@ -324,9 +325,8 @@ def main():
 
     if st.session_state.pdf_processed:
         user_question = st.text_input("Ask a question about your documents:")
-        if st.button("get response"):
-            with st.balloons():
-                handle_userinput(user_question)
+        if st.button("Get Response"):
+            handle_userinput(user_question)
 
 if __name__ == '__main__':
     main()
