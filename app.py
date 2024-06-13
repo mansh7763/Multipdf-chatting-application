@@ -15,6 +15,11 @@ import re
 import httpx
 import logging
 import os
+from google.auth import default
+from google.auth.transport.requests import Request
+import google.generativeai as genai
+# HuggingFace token
+# api_token = "AIzaSyBjTX8MSFMU3XvkiKhZAJ2BHgnt3S3_MWI"
 
 # huggingface token
 load_dotenv()
@@ -46,10 +51,10 @@ def get_pdf_text(pdf_docs):
     return text
 
 def get_text_chunks(text):
-    max_chunk_size = 200
+    max_chunk_size = 1000
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=max_chunk_size,
-        chunk_overlap=10,
+        chunk_overlap=100,
         length_function=len,
     )
     text_chunks = text_splitter.split_text(text)
@@ -95,7 +100,7 @@ def handle_userinput(user_question):
 
     data = response.data[0]
     content = data.get('content', []) 
-    st.write("this is final content",content) # Safely access 'content' key
+    # st.write("this is final content",content) # Safely access 'content' key
     content_embeddings = np.array(data.get('embeddings', []))  # Safely access 'embeddings' key
 
     if isinstance(content, str):
@@ -113,36 +118,39 @@ def handle_userinput(user_question):
     best_chunk = extract_chunks(best_chunk)
 
     # Join the best chunks into a single string for the input
-    context = " ".join(best_chunk)
+    # context = " ".join(best_chunk)
+    input_text = f"You are an AI language model designed for a Retrieval-Augmented Generation (RAG) application. You will receive a query along with relevant chunks of text. Based on these chunks, generate a coherent and accurate response to the query. Query: {user_question} Relevant Chunks: {best_chunk}"
+    genai.configure(api_key="AIzaSyBjTX8MSFMU3XvkiKhZAJ2BHgnt3S3_MWI")
+    model = genai.GenerativeModel('gemini-1.0-pro')
 
-    input_text = f"You are an AI language model and will answer the query based on the best chunk provided. Query: {user_question} Best chunk: {best_chunk}"
+    # input_text = f"You are an AI language model and will answer the query based on the best chunk provided. Query: {user_question} Best chunk: {best_chunk}"
 
-    headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/json"
-    }
-    payload = {"inputs": input_text, "parameters": {"max_length": 512, "temperature": 0.7, "repetition_penalty": 1.2}}
+    # headers = {
+    #     "Authorization": f"Bearer {api_token}",
+    #     "Content-Type": "application/json"
+    # }
+    # payload = {"inputs": input_text, "parameters": {"max_length": 512, "temperature": 0.7, "repetition_penalty": 1.2}}
+    output = model.generate_content(input_text)
+    # response = requests.post(
+    #     "https://api-inference.huggingface.co/models/google/flan-t5-large",
+    #     headers=headers,
+    #     json=payload
+    # )
+    response = output.text
+    # if response.status_code == 200:
+    #     response_data = response.json()
+    #     if isinstance(response_data, list) and 'generated_text' in response_data[0]:
+    #         response_text = response_data[0]['generated_text']
+    #     else:
+    #         response_text = "Sorry, I couldn't generate a response. Please try again."
+    # else:
+    #     response_text = f"Error: {response.status_code}. {response.content.decode('utf-8')}"
 
-    response = requests.post(
-        "https://api-inference.huggingface.co/models/google/flan-t5-large",
-        headers=headers,
-        json=payload
-    )
-
-    if response.status_code == 200:
-        response_data = response.json()
-        if isinstance(response_data, list) and 'generated_text' in response_data[0]:
-            response_text = response_data[0]['generated_text']
-        else:
-            response_text = "Sorry, I couldn't generate a response. Please try again."
-    else:
-        response_text = f"Error: {response.status_code}. {response.content.decode('utf-8')}"
-
-    response_text = ' '.join(dict.fromkeys(response_text.split()))
+    # response_text = ' '.join(dict.fromkeys(response_text.split()))
 
     st.session_state.chat_history = [
         {"role": "user", "content": user_question},
-        {"role": "bot", "content": response_text}
+        {"role": "bot", "content": response }
     ]
 
     for message in st.session_state.chat_history:
@@ -274,8 +282,7 @@ def main():
                         except Exception as e:
                             st.error(f"An error occurred with processing old ID and new documents: {e}")
 
-                    st.success("Processing complete!")
-                    st.write("You can now ask a question to the chatbot.")
+                    st.success("You can now ask a question to the chatbot.")
 
                     
         elif user_type == "Continue with previous docs":
@@ -287,9 +294,9 @@ def main():
                 with st.spinner("Processing"):
                     try:
                         # Fetch existing data associated with old_id_value
-                        st.write("Started fetching existing data...")
+                        # st.write("Started fetching existing data...")
                         response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
-                        st.write("Response fetched")
+                        # st.write("Response fetched")
 
                         if response.data:
                             existing_data = response.data[0]
@@ -301,7 +308,7 @@ def main():
                             # st.write(existing_content)
                             existing_embeddings = np.array(existing_data.get('embeddings', []))
 
-                            st.write("Fetching complete")
+                            # st.write("Fetching complete")
                             st.session_state.pdf_processed = True
                         else:
                             st.error(f"No data found for the provided ID: {old_id_value}")
@@ -310,9 +317,8 @@ def main():
                         st.error(f"An error occurred with processing old ID and new documents: {e}")
 
                 if st.session_state.pdf_processed:
-                    st.success("Processing complete!")
-                    st.write("You can now ask a question to the chatbot.")
-
+                    st.success("You can now ask a question to the chatbot.")
+                    
 
 
 

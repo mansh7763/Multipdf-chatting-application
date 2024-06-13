@@ -25,3 +25,5 @@ requests
 # uncomment to use instructor embeddings
 # InstructorEmbedding==1.0.1
 # sentence-transformers==2.2.2
+google.auth
+google.generativeai
