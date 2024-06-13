@@ -63,6 +63,10 @@ def get_embeddings(text_chunks):
 def find_top_chunks(user_query, content, content_embeddings, top_n=3):
     model = SentenceTransformer('all-MiniLM-L6-v2')
     query_embedding = model.encode([user_query], convert_to_tensor=True)
+    # If content_embeddings is empty, encode the entire content
+    if len(content_embeddings) == 0:
+        content_embeddings = model.encode(content, convert_to_tensor=True)
+
     similarities = np.dot(content_embeddings, query_embedding.T).squeeze()
     top_indices = np.argsort(similarities)[-top_n:][::-1]
     top_chunks = [content[idx] for idx in top_indices]
@@ -90,7 +94,7 @@ def handle_userinput(user_question):
         return
 
     data = response.data[0]
-    content = data.get('content') 
+    content = data.get('content', []) 
     st.write("this is final content",content) # Safely access 'content' key
     content_embeddings = np.array(data.get('embeddings', []))  # Safely access 'embeddings' key
 
@@ -100,9 +104,16 @@ def handle_userinput(user_question):
         except Exception as e:
             st.error(f"Content is not in the expected format: {e}")
             return
+        
+    # Ensure content is a list of strings
+    if not isinstance(content, list):
+        content = [content]
 
     best_chunk = find_top_chunks(user_question, content, content_embeddings)
     best_chunk = extract_chunks(best_chunk)
+
+    # Join the best chunks into a single string for the input
+    context = " ".join(best_chunk)
 
     input_text = f"You are an AI language model and will answer the query based on the best chunk provided. Query: {user_question} Best chunk: {best_chunk}"
 
@@ -204,47 +215,6 @@ def main():
                     st.error("Please provide both ID and PDFs to proceed.")
                 
         
-        # elif user_type == "Old User":
-        #     old_id_value = st.text_input("Enter your old ID", value="")
-        #     old_user_pdf_docs = st.file_uploader("Upload your PDFs and click on 'Process'", accept_multiple_files=True, key=key_old_user)
-        #     st.session_state.user_pdf_docs = old_user_pdf_docs
-        #     if st.button("process data"):
-        #         st.session_state.id = old_id_value
-                    
-        #         # Fetch existing data associated with old_id_value
-        #         response = supabase_client.table('pdfs').select('content', 'embeddings').eq('id', old_id_value).execute()
-        #         existing_data = response.data[0]
-        #         # st.write({existing_data})
-        #         existing_content = existing_data['content'] if 'content' in existing_data else []
-        #         # st.write(existing_content) #debugging
-        #         existing_embeddings = np.array(existing_data['embeddings']) if 'embeddings' in existing_data else np.array([])
-        #         st.write("fetching complete")
-
-                  
-        #         if old_user_pdf_docs:
-        #             with st.spinner("Processing"):
-        #                 try:
-        #                     st.write("started processing")
-        #                     new_raw_text = get_pdf_text(old_user_pdf_docs)
-        #                     # st.write(new_raw_text) #debugging
-        #                     new_text_chunks = get_text_chunks(new_raw_text)
-        #                     # st.write(new_text_chunks) #debugging
-        #                     new_embeddings = get_embeddings(new_text_chunks)
-        #                     st.write("ye existing chunks hae", existing_content[0])
-        #                     st.write("ye new chunks hae", new_text_chunks)
-        #                     combined_text_chunks = existing_content + new_text_chunks
-        #                     st.write("ye combined chunks hae", combined_text_chunks)
-        #                     st.write("done")
-        #                     # st.write({combined_text_chunks})
-        #                     combined_embeddings = np.concatenate([existing_embeddings, new_embeddings], axis=0)
-        #                     combined_embedding_list = combined_embeddings.tolist()
-        #                     data = {'id': old_id_value, 'content': combined_text_chunks, 'embeddings': combined_embedding_list}
-        #                     supabase_client.table('pdfs').upsert(data).execute()
-        #                     st.session_state.pdf_processed = True
-        #                 except Exception as e:
-        #                     st.error(f"An error occurred with processing old ID and new documents: {e}")
-        #             st.success("Processing complete!")
-        #             st.write("You can now ask a question to the chatbot.")
 
         elif user_type == "Old User":
             old_id_value = st.text_input("Enter your old ID", value="")
@@ -261,8 +231,10 @@ def main():
                 existing_data = response.data[0]
                 
                 # Ensure existing_content is a list
-                existing_content = existing_data['content'] if 'content' in existing_data else []
+                existing_content = existing_data.get('content', [])
                 if isinstance(existing_content, str):
+                    existing_content = eval(existing_content)
+                if not isinstance(existing_content, list):
                     existing_content = [existing_content]
 
                 st.session_state.existing_content = existing_content
