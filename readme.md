@@ -27,7 +27,8 @@ The application follows these steps to provide responses to your questions:
 
 7. Response Generation: The selected chunks are passed to the language model, which generates a response based on the relevant content of the PDFs.
 
-<img width="956" alt="Screenshot 2024-06-15 130614" src="https://github.com/mansh7763/Multipdf-chatting-application/assets/130061782/b62deac7-59c4-4469-8515-0ca5c9847e1e">
+<img width="960" alt="Screenshot 2024-06-15 130901" src="https://github.com/mansh7763/Multipdf-chatting-application/assets/130061782/5ac5d5d6-f8f1-4a79-8c1e-38a9816697bc">
+
 
 ## Usage
 --------------------------------------------------------------
