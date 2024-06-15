@@ -22,13 +22,21 @@ import google.generativeai as genai
 # api_token = "AIzaSyBjTX8MSFMU3XvkiKhZAJ2BHgnt3S3_MWI"
 
 # huggingface token
-load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
+# load_dotenv()
+# DATABASE_URL = os.getenv('DATABASE_URL')
 
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-api_token = os.getenv('API_TOKEN')
-api_key = os.getenv('API_KEY')
+# SUPABASE_URL = os.getenv('SUPABASE_URL')
+# SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+# api_token = os.getenv('API_TOKEN')
+# api_key = os.getenv('API_KEY')
+
+# streamlit environment variables
+
+DATABASE_URL = st.secrets['DATABASE_URL']
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+api_token = st.secrets["API_TOKEN"]
+api_key = st.secrets["API_KEY"]
 
 engine = create_engine(DATABASE_URL)
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
